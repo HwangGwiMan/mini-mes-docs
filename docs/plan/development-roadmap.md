@@ -4,6 +4,51 @@
 
 ## 개발 이력
 
+### 2026-04-08
+**재고 원장(Inventory) 백엔드 구현 완료**
+
+| 구분 | 백엔드 | 프론트엔드 |
+|------|--------|------------|
+| 기준 정보 (공통코드·직원·품목·거래처·품목단가·공정) | ✅ 완성 | ✅ 완성 |
+| 거래 업무 (견적→수주→출하→매출) | ✅ 완성 | ✅ 완성 |
+| Phase 1 — BOM | ✅ 완성 | ✅ 완성 |
+| Phase 1 — 라우팅 | ✅ 완성 | ✅ 완성 |
+| Phase 1 — 창고 | ✅ 완성 | ✅ 완성 |
+| Phase 2 — 구매요청 *(로드맵 외 추가)* | ✅ 완성 | ✅ 완성 |
+| Phase 2 — 구매발주 | ✅ 완성 | ✅ 완성 |
+| Phase 2 — 자재입고 | ✅ 완성 | ✅ 완성 |
+| Phase 2 — 수주이행현황 *(로드맵 외 추가, 조회 전용)* | 🟡 부분 | ✅ 완성 |
+| Phase 2 — 재고 원장 (inventory) | ✅ 완성 | ❌ 미구현 |
+| Phase 3 — 작업지시 | ❌ 미구현 (패키지·설계 주석만) | ❌ 미구현 |
+| Phase 3 — 자재 출고 | ❌ 미구현 (패키지·설계 주석만) | ❌ 미구현 |
+| Phase 3 — 생산실적 | ❌ 미구현 (패키지·설계 주석만) | ❌ 미구현 |
+| Phase 4 — 품질검사 | ❌ 미구현 (패키지·설계 주석만) | ❌ 미구현 |
+
+**구현 내용 (재고 원장 백엔드)**
+- `inventory/domain`: `Inventory`, `InventoryLot`, `InventoryTx` 엔티티 + Repository 3종 + `InventoryTxType` 열거형
+  - `Inventory`·`InventoryLot`: BaseEntity 상속, 낙관적 락(@Version), 수량 조작 메서드(receive/issue/reserve/unreserve)
+  - `InventoryTx`: 불변 원장 — BaseEntity 미상속, `@EntityListeners(AuditingEntityListener)` 직접 적용
+- `inventory/application`: `InventoryService`(receiveStock/transfer/adjust + Phase D용 stub 5개) + `InventoryEventHandler`(`StockReceivedEvent` 수신 → receiveStock 위임)
+- `inventory/internal`: `InventoryQueryRepository` — jOOQ raw DSL로 현재고·LOT·수불이력 조회
+- `inventory/api`: `InventoryController` (5개 엔드포인트) + DTO 5종 (InventoryResponse, InventoryLotResponse, InventoryTxResponse, TransferRequest, AdjustRequest)
+- `goodsreceipt`: 입고 확정 시 `StockReceivedEvent` 발행, DTO 패키지 구조 정리 (`api/` → `api/dto/`)
+- `common/exception/GlobalExceptionHandler`: `ObjectOptimisticLockingFailureException` → HTTP 409 핸들러 추가
+
+**API 목록 (재고 원장)**
+| 메서드 | 경로 | 설명 |
+|--------|------|------|
+| GET | `/api/inventory` | 현재고 목록 (창고×품목 집계) |
+| GET | `/api/inventory/lots` | LOT별 현재고 목록 |
+| GET | `/api/inventory/transactions` | 수불 이력 (기간·창고·품목 필터) |
+| POST | `/api/inventory/transfer` | 창고 간 재고 이동 |
+| POST | `/api/inventory/adjust` | 재고 조정 (ADJUST_IN / ADJUST_OUT) |
+
+**비고**
+- Phase 3 연동용 stub(`reserveMaterial`, `unreserveMaterial`, `issueMaterial`, `receiveProduction`, `issueSales`)은 InventoryService에 시그니처만 정의, 작업지시 도메인 구현 시 완성 예정
+- 다음 작업 우선순위: 재고 원장 프론트엔드 또는 Phase 3 — 작업지시 백엔드
+
+---
+
 ### 2026-04-01
 **진척 상황 전체 점검 (백엔드 구현 깊이 포함)**
 
@@ -18,15 +63,15 @@
 | Phase 2 — 구매발주 | ✅ 완성 | ✅ 완성 |
 | Phase 2 — 자재입고 | ✅ 완성 | ✅ 완성 |
 | Phase 2 — 수주이행현황 *(로드맵 외 추가, 조회 전용)* | 🟡 부분 | ✅ 완성 |
-| Phase 2 — 재고 원장 (inventory) | ❌ 미구현 (패키지·설계 주석만) | ❌ 미구현 |
+| Phase 2 — 재고 원장 (inventory) | ✅ 완성 (2026-04-08) | ❌ 미구현 |
 | Phase 3 — 작업지시 | ❌ 미구현 (패키지·설계 주석만) | ❌ 미구현 |
 | Phase 3 — 자재 출고 | ❌ 미구현 (패키지·설계 주석만) | ❌ 미구현 |
 | Phase 3 — 생산실적 | ❌ 미구현 (패키지·설계 주석만) | ❌ 미구현 |
 | Phase 4 — 품질검사 | ❌ 미구현 (패키지·설계 주석만) | ❌ 미구현 |
 
 **비고**
-- Phase 2의 `inventory`와 Phase 3~4 전체는 패키지 뼈대 및 설계 주석만 존재하며 실제 로직 없음
-- 다음 작업 우선순위: 재고 원장(inventory) 백엔드 구현 → 작업지시 → 자재출고 → 생산실적 → 각 프론트엔드
+- Phase 3~4 전체는 패키지 뼈대 및 설계 주석만 존재하며 실제 로직 없음
+- 다음 작업 우선순위: 재고 원장(inventory) 프론트엔드 또는 Phase 3 — 작업지시 백엔드
 
 ---
 
