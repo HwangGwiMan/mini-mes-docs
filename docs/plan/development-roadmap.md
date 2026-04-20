@@ -4,6 +4,40 @@
 
 ## 개발 이력
 
+### 2026-04-20
+**Phase 3 — 작업지시 라우팅 전개(WorkOrderRouting) 추가 예정**
+
+| 구분 | 백엔드 | 프론트엔드 |
+|------|--------|------------|
+| 기준 정보 (공통코드·직원·품목·거래처·품목단가·공정) | ✅ 완성 | ✅ 완성 |
+| 거래 업무 (견적→수주→출하→매출) | ✅ 완성 | ✅ 완성 |
+| Phase 1 — BOM | ✅ 완성 | ✅ 완성 |
+| Phase 1 — 라우팅 | ✅ 완성 | ✅ 완성 |
+| Phase 1 — 창고 | ✅ 완성 | ✅ 완성 |
+| Phase 2 — 구매요청 *(로드맵 외 추가)* | ✅ 완성 | ✅ 완성 |
+| Phase 2 — 구매발주 | ✅ 완성 | ✅ 완성 |
+| Phase 2 — 자재입고 | ✅ 완성 | ✅ 완성 |
+| Phase 2 — 수주이행현황 *(로드맵 외 추가, 조회 전용)* | 🟡 부분 | ✅ 완성 |
+| Phase 2 — 재고 원장 (inventory) | ✅ 완성 | ✅ 완성 |
+| Phase 3 — 작업지시 | 🟡 진행중 | ✅ 완성 |
+| Phase 3 — 자재 출고 | ❌ 미구현 (패키지·설계 주석만) | ❌ 미구현 |
+| Phase 3 — 생산실적 | ❌ 미구현 (패키지·설계 주석만) | ❌ 미구현 |
+| Phase 4 — 품질검사 | ❌ 미구현 (패키지·설계 주석만) | ❌ 미구현 |
+
+**작업 내용 (작업지시 라우팅 전개)**
+- `workorder/domain`: `WorkOrderRouting` 엔티티 추가, `WorkOrder`에 `routings` 컬렉션 추가
+- `routing/application`: `RoutingService.findStepsByBomId(bomId)` 조회 메서드 추가 (크로스 도메인 접근 규칙 준수)
+- `workorder/application`: `WorkOrderService` 생성/수정 시 라우팅 전개 로직 추가
+  - `bomId`로 라우팅 조회 → 없으면 스킵 (라우팅 없는 품목 허용)
+  - `RoutingStep` → `WorkOrderRouting` 스냅샷 생성 (processId, stepOrder, standardTime 복사)
+- DB 마이그레이션: `work_order_routing` 테이블 추가
+
+**비고**
+- 라우팅이 없는 품목도 작업지시 생성 가능 (자재 전개만 수행)
+- 다음 작업 우선순위: Phase 3 — 자재 출고(MaterialIssue) 백엔드
+
+---
+
 ### 2026-04-14
 **Phase 3 — 작업지시(WorkOrder) 백엔드 + 프론트엔드 구현 완료**
 
