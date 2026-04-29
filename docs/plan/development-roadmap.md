@@ -4,6 +4,26 @@
 
 ## 개발 이력
 
+### 2026-04-29
+**다음 작업 방향 결정 — Phase 0 조직 계층 도메인 추가**
+
+생산실적(Phase 3) 구현 전, 법인·사업부·공장 계층 도메인을 선행 구축하기로 결정.
+모든 업무 데이터(수주·작업지시·출하·자재입고 등)를 공장 단위로 스코핑하고,
+공장별 비즈니스 규칙 차이를 Strategy Pattern(FactoryPolicy)으로 적용한다.
+
+**결정 배경**
+- 법인 → 사업부 → 공장 3단계 계층 구조 확정
+- 공장별로 비즈니스 로직 자체가 달라지는 케이스를 지원 (사이드 프로젝트 학습 목적 포함)
+- factory_id FK를 핵심 도메인에 추가하면 이후 생산실적·품질검사 등 모든 기능이 공장 단위로 자연스럽게 연결됨
+
+**다음 작업 우선순위**
+1. Phase 0-1: corporation / division / factory 도메인 생성 (백엔드 + 프론트엔드)
+2. Phase 0-2: 기존 도메인에 factory_id 연결
+3. Phase 0-3: FactoryPolicy 레이어 구축
+4. Phase 3: 생산실적
+
+---
+
 ### 2026-04-28
 **Phase 3 — 자재 출고(MaterialIssue) 백엔드 + 프론트엔드 구현 완료**
 
@@ -252,6 +272,57 @@
 ---
 
 ## 추천 개발 순서
+
+### Phase 0 — 조직 계층 도메인 (생산 실적 이전 선행 작업)
+
+법인·사업부·공장 단위로 모든 업무 데이터를 스코핑하고, 공장별로 다른 비즈니스 규칙을 적용하기 위한 기반 레이어.
+
+#### 계층 구조
+
+```
+Corporation (법인)
+  └── Division (사업부)
+        └── Factory (공장)
+              └── Warehouse (창고) ← 기존 도메인, factory_id 연결 필요
+```
+
+#### Phase 0-1 — 도메인 생성
+
+| 도메인 | 설명 |
+|--------|------|
+| corporation | 법인 — 최상위 조직 단위 |
+| division | 사업부 — 법인 하위, 여러 공장을 묶는 단위 |
+| factory | 공장 — 실제 업무가 발생하는 단위 |
+
+#### Phase 0-2 — 기존 도메인 factory_id 연결
+
+| 도메인 | 방식 |
+|--------|------|
+| warehouse | factory_id 직접 추가 |
+| sales_order | factory_id 직접 추가 |
+| work_order | factory_id 직접 추가 |
+| shipment | factory_id 직접 추가 |
+| goods_receipt | factory_id 직접 추가 |
+| material_issue | work_order 통해 간접 참조 (직접 추가 여부 추후 결정) |
+| inventory | warehouse → factory 간접 참조 |
+
+#### Phase 0-3 — Factory Policy 레이어 (Strategy Pattern)
+
+공장·사업부별로 비즈니스 규칙을 다르게 적용하기 위한 추상화 레이어.
+
+- `FactoryPolicy` 인터페이스 — 각 업무 영역별 규칙 메서드 정의
+- `PolicyRegistry` — factory → policy 매핑, factory 정책 없으면 division → corporation 순으로 fallback
+- `StandardPolicy` 구현체 — 기존 로직을 기본 정책으로 이전
+- `WorkOrderService`에 policy 적용 (첫 번째 적용 포인트)
+
+**Policy fallback 규칙**
+```
+공장 A (policyType=null)      → 사업부 정책 상속
+공장 B (policyType="STRICT")  → 자체 정책 사용
+공장 C (policyType=null)      → 사업부 정책도 null → 법인 기본 정책 사용
+```
+
+---
 
 ### Phase 1 — 기준 정보 보완 (선행 필수)
 | 영역 | 이유 |
